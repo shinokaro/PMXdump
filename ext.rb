@@ -1,6 +1,6 @@
 class IO
   def read_pmx_text(unicode_type) # true: UTF8; false: UTF16
-    p read(self.read_uint).encode(Encoding::UTF_8_MAC, unicode_type ? Encoding::UTF_8 : Encoding::UTF_16LE)
+    read(self.read_uint).encode(Encoding::UTF_8, unicode_type ? Encoding::UTF_8 : Encoding::UTF_16LE)
   end
   def read_pmx_index(size)
     case size
@@ -26,8 +26,8 @@ class IO
       raise
     end
   end
-  def read_bit(bits)
-    read(bits / 8 + 1).unpack("b#{bits}").at(0).each_byte.map{ |s| s.to_i.zero? ? false : true }
+  def read_bit(bits=8)
+		read(bits / 8 + ((bits % 8) > 0 ? 1 : 0)).unpack("b#{bits}").at(0).each_char.map{ |s| s.to_i.zero? ? false : true }
   end
   def read_bool
     read(1).unpack("c").at(0).zero? ? false : true ;
@@ -61,7 +61,7 @@ class IO
     read(2).unpack("v").at(0)
   end
   def read_uint32
-    read(4).unpack("V").at(0)
+    read(4).unpack("L").at(0)
   end
   def read_float
     read(4).unpack("f").at(0)

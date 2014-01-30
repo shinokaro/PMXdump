@@ -1,10 +1,9 @@
 module PMXReader
   def load_pmx(filepath)
-    pInfo = PMXInfo.new();
     begin
       miku = open(filepath, "rb")
     rescue #Filenotfound
-      raise "ERROR: PMX file could not be found: #{filpath}"
+      raise "ERROR: PMX file could not be found: #{filepath}"
     end
     header_info(miku)
     p :model
@@ -168,14 +167,10 @@ module PMXReader
       bone.position.x= miku.read_float
       bone.position.y= miku.read_float
       bone.position.z= miku.read_float
-      p bone.parentBoneIndex= miku.read_pmx_index(self.boneIndexSize)
-      if bone.parentBoneIndex != -1
-        bone.parent= self.bones[bone.parentBoneIndex]
-      else
-        bone.parent= nil
-      end
-      p bone.transformationLevel= miku.read_int
-      p bitflag = miku.read_bit(6)
+      bone.parentBoneIndex= miku.read_pmx_index(self.boneIndexSize)
+      bone.parent= bone.parentBoneIndex != -1 ? self.bones[bone.parentBoneIndex] : nil ;
+      bone.transformationLevel= miku.read_int
+      bitflag = miku.read_bit(6)
       bone.connectionDisplayMethod= bitflag[0]
       bone.rotationPossible=        bitflag[1]
       bone.movementPossible=        bitflag[2]
@@ -183,7 +178,7 @@ module PMXReader
       bone.controlPossible=         bitflag[4]
       bone.IK=                      bitflag[5]
       
-      p bitflag2 = miku.read_bit(6)
+      bitflag2 = miku.read_bit(6)
       bone.giveRotation=            bitflag2[0]
       bone.giveTranslation=         bitflag2[1]
       bone.axisFixed=               bitflag2[2]
@@ -193,43 +188,44 @@ module PMXReader
       
       if bone.connectionDisplayMethod
         # true: Display with Bone
-        p bone.connectionBoneIndex= miku.read_pmx_index(self.boneIndexSize)
+        bone.connectionBoneIndex= miku.read_pmx_index(self.boneIndexSize)
       else
         # false: Display with Coordinate Offset
-        p bone.coordinateOffset.x= miku.read_float
-        p bone.coordinateOffset.y= miku.read_float
-        p bone.coordinateOffset.z= miku.read_float
+        bone.coordinateOffset.x= miku.read_float
+        bone.coordinateOffset.y= miku.read_float
+        bone.coordinateOffset.z= miku.read_float
       end
       if bone.giveRotation || bone.giveTranslation
-        p bone.givenParentBoneIndex= miku.read_pmx_index(self.boneIndexSize)
-        p bone.giveRate= miku.read_float
+        bone.givenParentBoneIndex= miku.read_pmx_index(self.boneIndexSize)
+        bone.giveRate= miku.read_float
       end
       if bone.axisFixed
-        p bone.axisDirectionVector.x= miku.read_float
-        p bone.axisDirectionVector.y= miku.read_float
-        p bone.axisDirectionVector.z= miku.read_float
+        bone.axisDirectionVector.x= miku.read_float
+        bone.axisDirectionVector.y= miku.read_float
+        bone.axisDirectionVector.z= miku.read_float
       end
       if bone.localAxis
-        p bone.XAxisDirectionVector.x= miku.read_float
-        p bone.XAxisDirectionVector.y= miku.read_float
-        p bone.XAxisDirectionVector.z= miku.read_float
-        p bone.ZAxisDirectionVector.x= miku.read_float
-        p bone.ZAxisDirectionVector.y= miku.read_float
-        p bone.ZAxisDirectionVector.z= miku.read_float
+        bone.XAxisDirectionVector.x= miku.read_float
+        bone.XAxisDirectionVector.y= miku.read_float
+        bone.XAxisDirectionVector.z= miku.read_float
+        bone.ZAxisDirectionVector.x= miku.read_float
+        bone.ZAxisDirectionVector.y= miku.read_float
+        bone.ZAxisDirectionVector.z= miku.read_float
       end
       if bone.externalParentTransform
-        p bone.keyValue= miku.read_int
+        bone.keyValue= miku.read_int
       end
       if bone.IK
-        p bone.IKTargetBoneIndex= miku.read_pmx_index(self.boneIndexSize)
-				p bone.IKLoopCount=       miku.read_uint
-				p bone.IKLoopAngleLimit=  miku.read_float
-				p bone.IKLinkNum=         miku.read_uint
-				exit
+        bone.IKTargetBoneIndex= miku.read_pmx_index(self.boneIndexSize)
+				bone.IKLoopCount=       miku.read_uint
+				bone.IKLoopAngleLimit=  miku.read_float
+				bone.IKLinkNum=         miku.read_uint
+				
 				bone.IKLinkNum.times {
 					link = PMXIKLink.new
 					link.linkBoneIndex = miku.read_pmx_index(self.boneIndexSize)
 					link.angleLimit= miku.read_bool
+					 
 					if link.angleLimit
 						link.lowerLimit.x= miku.read_float
 						link.lowerLimit.y= miku.read_float
@@ -337,16 +333,16 @@ module PMXReader
 		self.display_frame_continuing_datasets.times {
 			df = PMXDisplayFrame.new
 			df.name=    miku.read_pmx_text(self.unicode_type)
-			df.nameEng= milu.read_pmx_text(self.unicode_type)
+			df.nameEng= miku.read_pmx_text(self.unicode_type)
 			df.specialFrameFlag=    miku.read_bool # 0:Normal Frame 1:Special Frame
 			df.elementsWithinFrame= miku.read_int  # Number of continuing elements
 			df.elementsWithinFrame.times {
 				element = PMXDisplayFrameElement.new
 				element.target= miku.read_bool
-				if element.target # Bone
-					element.index= miku.read_pmx_index(self.boneIndexSize)
-				else # Morph
+				if element.target # Morph
 					element.index= miku.read_pmx_index(self.morphIndexSize)
+				else # Bone
+					element.index= miku.read_pmx_index(self.boneIndexSize)
 				end
 				df.elements << element
 			}
@@ -357,15 +353,15 @@ module PMXReader
     self.rigid_body_continuing_datasets= miku.read_int
     self.rigid_body_continuing_datasets.times {
       rb = PMXRigidBody.new
-      rb.name=    read_pmx_text(self.unicode_type)
-      rb.nameEng= read_pmx_text(self.unicode_type)
+      rb.name=    miku.read_pmx_text(self.unicode_type)
+      rb.nameEng= miku.read_pmx_text(self.unicode_type)
       rb.relatedBoneIndex= miku.read_int(self.boneIndexSize) # Set to -1 when irrelevant/unrelated
-      rb.group= miku.read_uint8
+      rb.group=   miku.read_uint8
       rb.noCollisionGroupFlag= miku.read_uint16
-      rb.shape= miku.read_uint8 # 0:Circle 1:Square 2:Capsule
-      rb.size.x= miku.read_float
-      rb.size.y= miku.read_float
-      rb.size.z= miku.read_float
+      rb.shape=   miku.read_uint8 # 0:Circle 1:Square 2:Capsule
+      rb.size.x=  miku.read_float
+      rb.size.y=  miku.read_float
+      rb.size.z=  miku.read_float
       rb.position.x= miku.read_float
       rb.position.y= miku.read_float
       rb.position.z= miku.read_float
@@ -386,10 +382,10 @@ module PMXReader
     self.joint_continuing_datasets= miku.read_int
     self.joint_continuing_datasets.times {
       joint = PMXJoint.new
-      joint.name=    miku.read_pmx_text(UTF8, self.text_encode)
-      joint.nameEng= miku.read_pmx_text(UTF8, self.text_encode)
+      joint.name=    miku.read_pmx_text(self.unicode_type)
+      joint.nameEng= miku.read_pmx_text(self.unicode_type)
       joint.type= miku.read_bool # 0:Spring 6DOF; in PMX 2.0 always set to 0 (included to give room for expansion)
-      if joint.type == 0
+      unless joint.type
         joint.relatedRigidBodyIndexA= miku.read_pmx_index(self.rigidBodyIndexSize)# VARIABLES I ADDED BELOW THIS POINT; glm::mat4 Local; //joint matrix, local to relatedRigidBodyA
         joint.relatedRigidBodyIndexB= miku.read_pmx_index(self.rigidBodyIndexSize)
         joint.position.x= miku.read_float

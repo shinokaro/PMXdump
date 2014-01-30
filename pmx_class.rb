@@ -123,7 +123,7 @@ end
       end
     end
   end
-  class PMXMorphData < Struct; end
+  class PMXMorphData < BasicObject; end
   class PMXVertexMorph < Struct.new(:vertexIndex, :coordinateOffset)
     def initialize
       super()
